@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Student Placement Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Student Placement Tracker</h1>
+            <div class="user-info">
+                <span>Welcome, {{ user.username }}</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-small">Logout</a>
+            </div>
+        </header>
+        
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for category, message in messages %}
+                            <div class="message {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <div class="dashboard">
+                <nav class="sidebar">
+                    {% if role == 'student' %}
+                        <ul class="nav-links">
+                            <li><a href="{{ url_for('student.dashboard') }}" 
+                                   class="{{ 'active' if not tab or tab == 'dashboard' else '' }}">Dashboard</a></li>
+                            <li><a href="{{ url_for('student.profile') }}" 
+                                   class="{{ 'active' if tab == 'profile' else '' }}">My Profile</a></li>
+                        </ul>
+                    {% else %}
+                        <ul class="nav-links">
+                            <li><a href="{{ url_for('admin.dashboard') }}" 
+                                   class="{{ 'active' if not tab or tab == 'dashboard' else '' }}">Dashboard</a></li>
+                            <li><a href="{{ url_for('admin.eligibility_criteria') }}" 
+                                   class="{{ 'active' if tab == 'criteria' else '' }}">Eligibility Criteria</a></li>
+                            <li><a href="{{ url_for('admin.admin_settings') }}" 
+                                   class="{{ 'active' if tab == 'admin_settings' else '' }}">Admin Settings</a></li>
+                        </ul>
+                        
+                        <div class="filter-section">
+                            <h3>Filter by Department</h3>
+                            <select id="department-filter" onchange="filterByDepartment()" aria-label="Filter students by department">
+                                <option value="all">All Departments</option>
+                                <option value="CSE">Computer Science</option>
+                                <option value="ECE">Electronics</option>
+                                <option value="MECH">Mechanical</option>
+                                <option value="CIVIL">Civil</option>
+                                <option value="IT">Information Technology</option>
+                            </select>
+                        </div>
+                    {% endif %}
+                </nav>
+                
+                <div class="content">
+                    {% if role == 'student' %}
+                        {% if tab == 'profile' %}
+                            <!-- Student Profile Form -->
+                            <h2>My Profile</h2>
+                            <form action="{{ url_for('student.update_profile') }}" method="POST" class="profile-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="semester_cgpa">Semester CGPA</label>
+                                        <input type="number" step="0.01" min="0" max="10" id="semester_cgpa" 
+                                               name="semester_cgpa" value="{{ profile.semester_cgpa if profile else '' }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="domain_specialization">Domain Specialization</label>
+                                        <input type="text" id="domain_specialization" name="domain_specialization" 
+                                               value="{{ profile.domain_specialization if profile else '' }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="skills">Skills (comma separated)</label>
+                                    <textarea id="skills" name="skills" rows="2" required>{{ profile.skills if profile else '' }}</textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="projects">Projects Description (comma separated)</label>
+                                    <textarea id="projects" name="projects" rows="3" required>{{ profile.projects if profile else '' }}</textarea>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="project_titles">Project Titles (comma separated)</label>
+                                        <textarea id="project_titles" name="project_titles" rows="2">{{ profile.project_titles if profile else '' }}</textarea>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="project_domains">Project Domains (comma separated)</label>
+                                        <textarea id="project_domains" name="project_domains" rows="2">{{ profile.project_domains if profile else '' }}</textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="project_github_links">Project GitHub Links (comma separated)</label>
+                                    <textarea id="project_github_links" name="project_github_links" rows="2">{{ profile.project_github_links if profile else '' }}</textarea>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="leetcode_problems">LeetCode Problems Solved</label>
+                                        <input type="number" min="0" id="leetcode_problems" name="leetcode_problems" 
+                                               value="{{ profile.leetcode_problems if profile else 0 }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="leetcode_profile">LeetCode Profile URL</label>
+                                        <input type="url" id="leetcode_profile" name="leetcode_profile" 
+                                               value="{{ profile.leetcode_profile if profile else '' }}">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="weekly_assessment_score">Weekly Assessment Score (%)</label>
+                                        <input type="number" step="0.01" min="0" max="100" id="weekly_assessment_score" 
+                                               name="weekly_assessment_score" value="{{ profile.weekly_assessment_score if profile else '' }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="attendance_percentage">Attendance Percentage</label>
+                                        <input type="number" step="0.01" min="0" max="100" id="attendance_percentage" 
+                                               name="attendance_percentage" value="{{ profile.attendance_percentage if profile else '' }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="github_profile">GitHub Profile</label>
+                                        <input type="url" id="github_profile" name="github_profile" 
+                                               value="{{ profile.github_profile if profile else '' }}">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="linkedin_profile">LinkedIn Profile</label>
+                                        <input type="url" id="linkedin_profile" name="linkedin_profile" 
+                                               value="{{ profile.linkedin_profile if profile else '' }}">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="portfolio_link">Personal Portfolio Link</label>
+                                        <input type="url" id="portfolio_link" name="portfolio_link" 
+                                               value="{{ profile.portfolio_link if profile else '' }}">
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Update Profile</button>
+                            </form>
+                            
+                            {% if profile %}
+                                <div class="eligibility-status">
+                                    <h3>Eligibility Status</h3>
+                                    <div class="status-card {{ 'eligible' if profile.is_eligible else 'not-eligible' }}">
+                                        <p>You are {{ 'eligible' if profile.is_eligible else 'not eligible' }} for placement</p>
+                                        {% if profile.is_approved %}
+                                            <p class="approved">You are approved to attend placement drives.</p>
+                                        {% elif profile.is_eligible %}
+                                            <p class="pending">Your eligibility is being reviewed by the admin.</p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="criteria-info">
+                                        <h4>Placement Eligibility Criteria:</h4>
+                                        <ul>
+                                            <li class="{{ 'met' if profile.attendance_percentage >= criteria.min_attendance else 'not-met' }}">
+                                                Minimum Attendance: {{ criteria.min_attendance }}% 
+                                                (Your attendance: {{ profile.attendance_percentage }}%)
+                                            </li>
+                                            <li class="{{ 'met' if profile.weekly_assessment_score >= criteria.min_assessment_score else 'not-met' }}">
+                                                Minimum Weekly Assessment Score: {{ criteria.min_assessment_score }}% 
+                                                (Your score: {{ profile.weekly_assessment_score }}%)
+                                            </li>
+                                            <li class="{{ 'met' if profile.semester_cgpa >= criteria.min_cgpa else 'not-met' }}">
+                                                Minimum CGPA: {{ criteria.min_cgpa }} 
+                                                (Your CGPA: {{ profile.semester_cgpa }})
+                                            </li>
+                                            <li class="{{ 'met' if profile.leetcode_problems >= criteria.min_leetcode_problems else 'not-met' }}">
+                                                Minimum LeetCode Problems: {{ criteria.min_leetcode_problems }} 
+                                                (You've solved: {{ profile.leetcode_problems }})
+                                            </li>
+                                            <li class="{{ 'met' if (profile.projects and profile.projects.count(',') + 1 >= criteria.min_projects) else 'not-met' }}">
+                                                Minimum Projects: {{ criteria.min_projects }} 
+                                                (You have: {{ profile.projects.count(',') + 1 if profile.projects else 0 }})
+                                            </li>
+                                            {% if criteria.require_portfolio %}
+                                                <li class="{{ 'met' if profile.portfolio_link else 'not-met' }}">
+                                                    Personal Portfolio Required 
+                                                    (You have: {{ 'Yes' if profile.portfolio_link else 'No' }})
+                                                </li>
+                                            {% endif %}
+                                            {% if criteria.require_leetcode_profile %}
+                                                <li class="{{ 'met' if profile.leetcode_profile else 'not-met' }}">
+                                                    LeetCode Profile Required
+                                                    (You have: {{ 'Yes' if profile.leetcode_profile else 'No' }})
+                                                </li>
+                                            {% endif %}
+                                            {% if criteria.require_github_profile %}
+                                                <li class="{{ 'met' if profile.github_profile else 'not-met' }}">
+                                                    GitHub Profile Required
+                                                    (You have: {{ 'Yes' if profile.github_profile else 'No' }})
+                                                </li>
+                                            {% endif %}
+                                            {% if criteria.require_linkedin_profile %}
+                                                <li class="{{ 'met' if profile.linkedin_profile else 'not-met' }}">
+                                                    LinkedIn Profile Required
+                                                    (You have: {{ 'Yes' if profile.linkedin_profile else 'No' }})
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                        {% else %}
+                            <!-- Student Dashboard -->
+                            <h2>Dashboard</h2>
+                            <div class="dashboard-cards">
+                                <div class="card">
+                                    <h3>Profile Completion</h3>
+                                    <div class="card-content">
+                                        {% if profile %}
+                                            <p>Your profile is complete.</p>
+                                            <p class="status {{ 'eligible' if profile.is_eligible else 'not-eligible' }}">
+                                                Status: {{ 'Eligible' if profile.is_eligible else 'Not Eligible' }}
+                                            </p>
+                                            {% if profile.is_approved %}
+                                                <p class="approved">You are approved for placement drives!</p>
+                                            {% endif %}
+                                        {% else %}
+                                            <p>Your profile is incomplete.</p>
+                                            <a href="{{ url_for('student.profile') }}" class="btn btn-primary">Complete Profile</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                    {% else %}
+                        {% if tab == 'criteria' %}
+                            <!-- Admin Eligibility Criteria -->
+                            <h2>Placement Eligibility Criteria</h2>
+                            <form action="{{ url_for('admin.eligibility_criteria') }}" method="POST" class="criteria-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="min_attendance">Minimum Attendance (%)</label>
+                                        <input type="number" step="0.01" min="0" max="100" id="min_attendance" 
+                                               name="min_attendance" value="{{ criteria.min_attendance }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="min_assessment_score">Minimum Assessment Score (%)</label>
+                                        <input type="number" step="0.01" min="0" max="100" id="min_assessment_score" 
+                                               name="min_assessment_score" value="{{ criteria.min_assessment_score }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="min_cgpa">Minimum CGPA</label>
+                                        <input type="number" step="0.01" min="0" max="10" id="min_cgpa" 
+                                               name="min_cgpa" value="{{ criteria.min_cgpa }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="min_leetcode_problems">Minimum LeetCode Problems</label>
+                                        <input type="number" min="0" id="min_leetcode_problems" 
+                                               name="min_leetcode_problems" value="{{ criteria.min_leetcode_problems }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="min_projects">Minimum Projects</label>
+                                        <input type="number" min="0" id="min_projects" 
+                                               name="min_projects" value="{{ criteria.min_projects }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="require_portfolio" name="require_portfolio" value="1"
+                                               {% if criteria.require_portfolio == 1 %}checked{% endif %}>
+                                        <label for="require_portfolio">Require Personal Portfolio</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="require_leetcode_profile" name="require_leetcode_profile" value="1"
+                                               {% if criteria.require_leetcode_profile == 1 %}checked{% endif %}>
+                                        <label for="require_leetcode_profile">Require LeetCode Profile</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="require_github_profile" name="require_github_profile" value="1"
+                                               {% if criteria.require_github_profile == 1 %}checked{% endif %}>
+                                        <label for="require_github_profile">Require GitHub Profile</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="require_linkedin_profile" name="require_linkedin_profile" value="1"
+                                               {% if criteria.require_linkedin_profile == 1 %}checked{% endif %}>
+                                        <label for="require_linkedin_profile">Require LinkedIn Profile</label>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Update Criteria</button>
+                            </form>
+                            
+                        {% elif tab == 'admin_settings' %}
+                            <!-- Admin Settings -->
+                            <h2>Admin Settings</h2>
+                            <div class="settings-section">
+                                <h3>Admin Key</h3>
+                                <p>The admin key is required when registering a new admin user.</p>
+                                
+                                <form action="{{ url_for('admin.admin_settings') }}" method="POST" class="settings-form">
+                                    <div class="form-group">
+                                        <label for="admin_key">Admin Key</label>
+                                        <input type="text" id="admin_key" name="admin_key" 
+                                               value="{{ admin_key }}" required>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">Update Admin Key</button>
+                                </form>
+                            </div>
+                            
+                        {% elif tab == 'student_detail' %}
+                            <!-- Admin Student Detail View -->
+                            <h2>Student Details</h2>
+                            <div class="student-detail">
+                                <div class="profile-header">
+                                    <h3>{{ student_detail.username }}</h3>
+                                    <p>Department: {{ student_detail.department }}</p>
+                                    <p>Specialization: {{ student_detail.specialization }}</p>
+                                    <p>Email: {{ student_detail.email }}</p>
+                                    
+                                    <div class="approval-actions">
+                                        <button class="btn {{ 'btn-success' if student_profile.is_approved else 'btn-primary' }}" 
+                                                onclick="approveStudent('{{ student_detail.id }}', true)">
+                                            {{ 'Approved' if student_profile.is_approved else 'Approve' }}
+                                        </button>
+                                        <button class="btn {{ 'btn-danger' if not student_profile.is_approved else 'btn-secondary' }}" 
+                                                onclick="approveStudent('{{ student_detail.id }}', false)">
+                                            {{ 'Rejected' if not student_profile.is_approved else 'Reject' }}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="profile-details">
+                                    <div class="detail-section">
+                                        <h4>Academic Details</h4>
+                                        <p><strong>CGPA:</strong> {{ student_profile.semester_cgpa }}</p>
+                                        <p><strong>Weekly Assessment Score:</strong> {{ student_profile.weekly_assessment_score }}%</p>
+                                        <p><strong>Attendance:</strong> {{ student_profile.attendance_percentage }}%</p>
+                                    </div>
+                                    
+                                    <div class="detail-section">
+                                        <h4>Technical Skills</h4>
+                                        <p><strong>Domain Specialization:</strong> {{ student_profile.domain_specialization }}</p>
+                                        <p><strong>Skills:</strong> {{ student_profile.skills }}</p>
+                                        <p><strong>LeetCode Problems:</strong> {{ student_profile.leetcode_problems }}</p>
+                                        {% if student_profile.leetcode_profile %}
+                                            <p><strong>LeetCode Profile:</strong> <a href="{{ student_profile.leetcode_profile }}" target="_blank">{{ student_profile.leetcode_profile }}</a></p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="detail-section">
+                                        <h4>Projects</h4>
+                                        <p>{{ student_profile.projects }}</p>
+                                        
+                                        {% if student_profile.project_titles %}
+                                            <h5>Project Titles:</h5>
+                                            <p>{{ student_profile.project_titles }}</p>
+                                        {% endif %}
+                                        
+                                        {% if student_profile.project_domains %}
+                                            <h5>Project Domains:</h5>
+                                            <p>{{ student_profile.project_domains }}</p>
+                                        {% endif %}
+                                        
+                                        {% if student_profile.project_github_links %}
+                                            <h5>Project GitHub Links:</h5>
+                                            <p>
+                                                {% for link in student_profile.project_github_links.split(',') %}
+                                                    <a href="{{ link.strip() }}" target="_blank">{{ link.strip() }}</a><br>
+                                                {% endfor %}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="detail-section">
+                                        <h4>Online Profiles</h4>
+                                        {% if student_profile.github_profile %}
+                                            <p><strong>GitHub:</strong> <a href="{{ student_profile.github_profile }}" target="_blank">{{ student_profile.github_profile }}</a></p>
+                                        {% endif %}
+                                        {% if student_profile.linkedin_profile %}
+                                            <p><strong>LinkedIn:</strong> <a href="{{ student_profile.linkedin_profile }}" target="_blank">{{ student_profile.linkedin_profile }}</a></p>
+                                        {% endif %}
+                                        {% if student_profile.portfolio_link %}
+                                            <p><strong>Portfolio:</strong> <a href="{{ student_profile.portfolio_link }}" target="_blank">{{ student_profile.portfolio_link }}</a></p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="detail-section eligibility-status">
+                                        <h4>Eligibility Status</h4>
+                                        <p class="{{ 'eligible' if student_profile.is_eligible else 'not-eligible' }}">
+                                            {{ 'Eligible' if student_profile.is_eligible else 'Not Eligible' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        {% else %}
+                            <!-- Admin Dashboard -->
+                            <h2>Admin Dashboard</h2>
+                            
+                            <div class="dashboard-cards">
+                                <div class="card">
+                                    <h3>Eligible Students</h3>
+                                    <p>{{ eligible_students|length }} students meet the eligibility criteria</p>
+                                </div>
+                                
+                                <div class="card">
+                                    <h3>Total Students</h3>
+                                    <p>{{ all_students|length }} students registered</p>
+                                </div>
+                                
+                                {% if eligible_students|length > 0 %}
+                                <div class="card">
+                                    <h3>Export Data</h3>
+                                    <a href="{{ url_for('admin.export_excel') }}" class="btn btn-primary">Export Eligible Students to Excel</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="student-tabs">
+                                <button class="tab-btn active" onclick="showStudentTab('all')">All Students</button>
+                                <button class="tab-btn" onclick="showStudentTab('eligible')">Eligible Students</button>
+                            </div>
+                            
+                            <div id="tab-all" class="student-tab-content">
+                                <h3>All Students</h3>
+                                {% if all_students %}
+                                    <div class="table-container">
+                                        <table class="students-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Department</th>
+                                                    <th>Specialization</th>
+                                                    <th>CGPA</th>
+                                                    <th>Skills</th>
+                                                    <th>LeetCode</th>
+                                                    <th>Eligible</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="all-students-table">
+                                                {% for student in all_students %}
+                                                    <tr data-department="{{ student.department }}">
+                                                        <td>{{ student.username }}</td>
+                                                        <td>{{ student.department }}</td>
+                                                        <td>{{ student.specialization }}</td>
+                                                        <td>{{ student.semester_cgpa if student.semester_cgpa else 'N/A' }}</td>
+                                                        <td>{{ student.skills if student.skills else 'N/A' }}</td>
+                                                        <td>{{ student.leetcode_problems if student.leetcode_problems else '0' }}</td>
+                                                        <td class="{{ 'eligible' if student.is_eligible else 'not-eligible' }}">
+                                                            {{ 'Yes' if student.is_eligible else 'No' }}
+                                                        </td>
+                                                        <td>
+                                                            <a href="{{ url_for('admin.student_details', student_id=student.id) }}" 
+                                                               class="btn btn-small">View</a>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p>No students registered yet.</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div id="tab-eligible" class="student-tab-content" style="display: none;">
+                                <h3>Eligible Students</h3>
+                                {% if eligible_students %}
+                                    <div class="table-container">
+                                        <table class="students-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Department</th>
+                                                    <th>Specialization</th>
+                                                    <th>CGPA</th>
+                                                    <th>Assessment</th>
+                                                    <th>LeetCode</th>
+                                                    <th>Approved</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="eligible-students-table">
+                                                {% for student in eligible_students %}
+                                                    <tr data-department="{{ student.department }}">
+                                                        <td>{{ student.username }}</td>
+                                                        <td>{{ student.department }}</td>
+                                                        <td>{{ student.specialization }}</td>
+                                                        <td>{{ student.semester_cgpa }}</td>
+                                                        <td>{{ student.weekly_assessment_score }}%</td>
+                                                        <td>{{ student.leetcode_problems }}</td>
+                                                        <td class="{{ 'approved' if student.is_approved else '' }}">
+                                                            {{ 'Yes' if student.is_approved else 'No' }}
+                                                        </td>
+                                                        <td>
+                                                            <a href="{{ url_for('admin.student_details', student_id=student.id) }}" 
+                                                               class="btn btn-small">View</a>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p>No eligible students found.</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2023 Student Placement Tracker</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Show student tab
+        function showStudentTab(tabName) {
+            document.querySelectorAll('.student-tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            document.querySelectorAll('.student-tabs .tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById('tab-' + tabName).style.display = 'block';
+            document.querySelector('.student-tabs .tab-btn[onclick="showStudentTab(\'' + tabName + '\')"]').classList.add('active');
+        }
+        
+        // Filter students by department
+        function filterByDepartment() {
+            const department = document.getElementById('department-filter').value;
+            
+            // Filter all students table
+            document.querySelectorAll('#all-students-table tr').forEach(row => {
+                if (department === 'all' || row.getAttribute('data-department') === department) {
+                    row.style.display = 'table-row';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Filter eligible students table
+            document.querySelectorAll('#eligible-students-table tr').forEach(row => {
+                if (department === 'all' || row.getAttribute('data-department') === department) {
+                    row.style.display = 'table-row';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Approve student
+        function approveStudent(studentId, approved) {
+            // Convert boolean to string for the fetch request
+            const approvedStr = approved.toString();
+            
+            fetch(`/admin/approve_student/${studentId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `approved=${approvedStr}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Reload page on success
+                    location.reload();
+                } else {
+                    console.error('Error updating student approval status:', data.message);
+                    alert('Failed to update approval status. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating approval status.');
+            });
+        }
+    </script>
+</body>
+</html> 

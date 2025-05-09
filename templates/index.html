@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Placement Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Student Placement Tracker</h1>
+        </header>
+        
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for category, message in messages %}
+                            <div class="message {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <div class="auth-container">
+                <div class="tabs">
+                    <button class="tab-btn {{ 'active' if not register else '' }}" 
+                            onclick="window.location.href='{{ url_for('index') }}'">Login</button>
+                    <button class="tab-btn {{ 'active' if register else '' }}" 
+                            onclick="window.location.href='{{ url_for('register') }}'">Register</button>
+                </div>
+                
+                <div class="tab-content">
+                    {% if register %}
+                        <form action="{{ url_for('register') }}" method="POST" class="auth-form">
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" name="username" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="role">Role</label>
+                                <select id="role" name="role" onchange="toggleRoleFields()">
+                                    <option value="student">Student</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="department-group">
+                                <label for="department">Department</label>
+                                <select id="department" name="department">
+                                    <option value="CSE">Computer Science</option>
+                                    <option value="ECE">Electronics</option>
+                                    <option value="MECH">Mechanical</option>
+                                    <option value="CIVIL">Civil</option>
+                                    <option value="IT">Information Technology</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="specialization-group">
+                                <label for="specialization">Specialization</label>
+                                <select id="specialization" name="specialization">
+                                    <option value="AI/ML">AI/ML</option>
+                                    <option value="Web Development">Web Development</option>
+                                    <option value="Mobile App Development">Mobile App Development</option>
+                                    <option value="Cybersecurity">Cybersecurity</option>
+                                    <option value="Data Science">Data Science</option>
+                                    <option value="Cloud Computing">Cloud Computing</option>
+                                    <option value="DevOps">DevOps</option>
+                                    <option value="Blockchain">Blockchain</option>
+                                    <option value="IoT">IoT</option>
+                                    <option value="Embedded Systems">Embedded Systems</option>
+                                    <option value="Robotics">Robotics</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="admin-key-group" style="display: none;">
+                                <label for="admin_key">Admin Key</label>
+                                <input type="password" id="admin_key" name="admin_key">
+                                <p class="hint">Required for admin registration</p>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Register</button>
+                        </form>
+                    {% else %}
+                        <form action="{{ url_for('login') }}" method="POST" class="auth-form">
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" name="username" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2023 Student Placement Tracker</p>
+        </footer>
+    </div>
+    
+    <script>
+        function toggleRoleFields() {
+            const roleSelect = document.getElementById('role');
+            const departmentGroup = document.getElementById('department-group');
+            const specializationGroup = document.getElementById('specialization-group');
+            const adminKeyGroup = document.getElementById('admin-key-group');
+            
+            if (roleSelect.value === 'admin') {
+                departmentGroup.style.display = 'none';
+                specializationGroup.style.display = 'none';
+                adminKeyGroup.style.display = 'block';
+            } else {
+                departmentGroup.style.display = 'block';
+                specializationGroup.style.display = 'block';
+                adminKeyGroup.style.display = 'none';
+            }
+        }
+        
+        // Call on page load if register form is active
+        document.addEventListener('DOMContentLoaded', function() {
+            const isRegister = {% if register %}true{% else %}false{% endif %};
+            if (isRegister) {
+                toggleRoleFields();
+            }
+        });
+    </script>
+</body>
+</html> 
